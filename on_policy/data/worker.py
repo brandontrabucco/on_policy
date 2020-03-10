@@ -163,7 +163,7 @@ class Worker(object):
                 rewards[-1].append(0.0)
 
             # terminate if the episode has been running too long
-            elif time_step >= self.max_horizon:
+            elif time_step >= self.max_horizon or step >= min_num_steps - 1:
                 end_of_episode = True
 
                 # select the right observation for the policy
