@@ -160,14 +160,10 @@ class Sampler(object):
         actions: np.ndarray
             a tensor containing actions taken by the agent
             that is shaped like [batch_dim, act_dim]
-        log_probs: np.ndarray
-            a tensor containing the log probabilities of the actions
-            taken by the agent during a roll out
-            that is shaped like [batch_dim]
-        returns:np.ndarray
+        returns: np.ndarray
             a tensor containing returns experienced by the agent
             that is shaped like [batch_dim]
-        advantages:np.ndarray
+        advantages: np.ndarray
             a tensor containing advantages estimated by the agent
             that is shaped like [batch_dim]
         rewards: np.ndarray
@@ -187,7 +183,6 @@ class Sampler(object):
         # create a buffer to store incoming data
         out_o = tree.map_structure(lambda _: [], self.obs_spec)
         out_a = tree.map_structure(lambda _: [], self.act_spec)
-        out_p = tree.map_structure(lambda _: [], self.act_spec)
         out_ret = tree.map_structure(lambda _: [], self.act_spec)
         out_adv = tree.map_structure(lambda _: [], self.act_spec)
         out_rew = []
@@ -201,7 +196,7 @@ class Sampler(object):
             time.sleep(0.05)
             for i in set(open_set):
                 if not self.out_queues[i].empty():
-                    o, a, p, ret, adv, rew, lengths = self.out_queues[i].get()
+                    o, a, ret, adv, rew, lengths = self.out_queues[i].get()
                     open_set.remove(i)
 
                     # add the worker result to an output buffer
@@ -209,8 +204,6 @@ class Sampler(object):
                         lambda x, y: x.append(y), out_o, o)
                     map(self.act_spec,
                         lambda x, y: x.append(y), out_a, a)
-                    map(self.act_spec,
-                        lambda x, y: x.append(y), out_p, p)
                     map(self.act_spec,
                         lambda x, y: x.append(y), out_ret, ret)
                     map(self.act_spec,
@@ -223,8 +216,6 @@ class Sampler(object):
                     lambda x: concat(x, axis=0), out_o)
         out_a = map(self.act_spec,
                     lambda x: concat(x, axis=0), out_a)
-        out_p = map(self.act_spec,
-                    lambda x: concat(x, axis=0), out_p)
         out_ret = map(self.act_spec,
                       lambda x: concat(x, axis=0), out_ret)
         out_adv = map(self.act_spec,
@@ -234,7 +225,6 @@ class Sampler(object):
 
         return (out_o,
                 out_a,
-                out_p,
                 out_ret,
                 out_adv,
                 out_rew,

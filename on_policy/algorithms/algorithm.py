@@ -26,7 +26,6 @@ class Algorithm(ABC):
     def train(self,
               observations,
               actions,
-              log_probs,
               returns,
               advantages):
         """Trains the policy and value function using a batch of data
@@ -40,10 +39,6 @@ class Algorithm(ABC):
         actions: tf.Tensor
             a tensor containing actions taken by the agent
             that is shaped like [batch_dim, act_dim]
-        log_probs: np.ndarray
-            a tensor containing the log probabilities of the actions
-            taken by the agent during a roll out
-            that is shaped like [batch_dim]
         returns: tf.Tensor
             a tensor containing returns experienced by the agent
             that is shaped like [batch_dim]

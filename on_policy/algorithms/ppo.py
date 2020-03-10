@@ -1,5 +1,6 @@
 from on_policy.algorithms.algorithm import Algorithm
 import tensorflow as tf
+import pickle as pkl
 import math
 
 
@@ -183,7 +184,6 @@ class PPO(Algorithm):
     def train(self,
               observations,
               actions,
-              log_probs,
               returns,
               advantages):
         """Trains the policy and value function using a batch of data
@@ -197,10 +197,6 @@ class PPO(Algorithm):
         actions: tf.Tensor
             a tensor containing actions taken by the agent
             that is shaped like [batch_dim, act_dim]
-        log_probs: np.ndarray
-            a tensor containing the log probabilities of the actions
-            taken by the agent during a roll out
-            that is shaped like [batch_dim]
         returns: tf.Tensor
             a tensor containing returns experienced by the agent
             that is shaped like [batch_dim]
@@ -212,13 +208,17 @@ class PPO(Algorithm):
         advantages = advantages - tf.reduce_mean(advantages)
         advantages = advantages / tf.math.reduce_std(advantages)
 
+        # calculate the log probability of the actions
+        log_prob = self.policy(observations).log_prob(actions)
+
         # since we are taking many gradient steps
         # it is efficient to preload data
         dataset = TensorDataset({'observations': observations,
                                  'actions': actions,
                                  'returns': returns,
                                  'advantages': advantages,
-                                 'log_probs': log_probs})
+                                 'log_probs': log_prob})
+
         dataset = dataset.shuffle(observations.shape[0])
         dataset = dataset.batch(self.batch_size)
         dataset = dataset.repeat(self.epoch)

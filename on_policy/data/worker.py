@@ -93,10 +93,6 @@ class Worker(object):
         actions: np.ndarray
             a tensor containing actions taken by the agent
             that is shaped like [batch_dim, act_dim]
-        log_probs: np.ndarray
-            a tensor containing the log probabilities of the actions
-            taken by the agent during a roll out
-            that is shaped like [batch_dim]
         returns: np.ndarray
             a tensor containing returns experienced by the agent
             that is shaped like [batch_dim]
@@ -154,9 +150,9 @@ class Worker(object):
                 self.env.render()
 
             # store the transition sampled from the environment
-            observations[-1].append(o)
+            map(self.obs_spec, lambda x, y: x.append(y), observations[-1], o)
+            map(self.act_spec, lambda x, y: x.append(y), actions[-1], a)
             rewards[-1].append(r)
-            actions[-1].append(a)
 
             # terminate if the episode has been running too long
             if end_of_episode:
@@ -179,7 +175,6 @@ class Worker(object):
 
         out_o = tree.map_structure(lambda _: [], self.obs_spec)
         out_a = tree.map_structure(lambda _: [], self.act_spec)
-        out_p = tree.map_structure(lambda _: [], self.act_spec)
         out_ret = tree.map_structure(lambda _: [], self.act_spec)
         out_adv = tree.map_structure(lambda _: [], self.act_spec)
         out_rew = []
@@ -202,19 +197,14 @@ class Worker(object):
             path_adv = self.agent.get_advantages(path_r, path_o)
 
             # remove the final observation that is unused
-            path_o = path_o[:-1]
+            path_o = map(self.obs_spec, lambda x: x[:-1], path_o)
             path_a = map(self.act_spec, lambda x: np.array(x), path_a)
-            path_p = self.agent.log_prob(np.arange(path_ret.shape[0]),
-                                         path_a,
-                                         path_o)
 
             # add the processed samples to the return buffer
             map(self.obs_spec,
                 lambda x, y: x.append(y), out_o, path_o)
             map(self.act_spec,
                 lambda x, y: x.append(y), out_a, path_a)
-            map(self.act_spec,
-                lambda x, y: x.append(y), out_p, path_p)
             map(self.act_spec,
                 lambda x, y: x.append(y), out_ret, path_ret)
             map(self.act_spec,
@@ -226,8 +216,6 @@ class Worker(object):
                     lambda x: concat(x, axis=0), out_o)
         out_a = map(self.act_spec,
                     lambda x: concat(x, axis=0), out_a)
-        out_p = map(self.act_spec,
-                    lambda x: concat(x, axis=0), out_p)
         out_ret = map(self.act_spec,
                       lambda x: concat(x, axis=0), out_ret)
         out_adv = map(self.act_spec,
@@ -236,7 +224,6 @@ class Worker(object):
 
         return (out_o,
                 out_a,
-                out_p,
                 out_ret,
                 out_adv,
                 out_rew,

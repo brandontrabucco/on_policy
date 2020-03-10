@@ -36,7 +36,6 @@ def train(sampler,
 
             (observations,
              actions,
-             log_probabilities,
              returns,
              advantages,
              rewards,
@@ -51,7 +50,6 @@ def train(sampler,
 
             (observations,
              actions,
-             log_probabilities,
              returns,
              advantages,
              rewards,
@@ -69,6 +67,5 @@ def train(sampler,
 
             algorithm.train(observations,
                             actions,
-                            log_probabilities,
                             returns,
                             advantages)
