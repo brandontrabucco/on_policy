@@ -1,25 +1,22 @@
 from on_policy.utils.keras_utils import PicklingSequential
 from on_policy.tensorboard_logger import TensorboardLogger
 from on_policy.distributions import Gaussian
-from on_policy.algorithms.ppo import PPO
-from on_policy.agents.gae_agent import GaeAgent
+from on_policy.algorithms.policy_gradient import PolicyGradient
+from on_policy.agents.policy_agent import PolicyAgent
 from on_policy.data.parallel_sampler import ParallelSampler
 from on_policy.core.train import train
 from on_policy.data.sampler import identity
 import tensorflow as tf
 
 
-ppo_variant = dict(
+policy_gradient_variant = dict(
     hidden_size=64,
-    logging_dir='ppo/',
+    logging_dir='policy_gradient/',
     policy_learning_rate=3e-4,
-    critic_learning_rate=3e-4,
     epoch=10,
     batch_size=2000,
-    epsilon=0.2,
     entropy_bonus=0.01,
     discount=0.99,
-    lamb=0.95,
     obs_selector=identity,
     num_workers=10,
     max_horizon=1000,
@@ -27,9 +24,9 @@ ppo_variant = dict(
     steps_per_iteration=10000)
 
 
-def ppo(variant,
-        env):
-    """Trains a policy using Proximal Policy Optimization
+def policy_gradient(variant,
+                    env):
+    """Trains a policy using Policy Gradients (REINFORCE)
     in the provided environment
 
     Arguments:
@@ -51,34 +48,21 @@ def ppo(variant,
         tf.keras.layers.Dense(act_size * 2)],
         name='policy')
 
-    value_function = PicklingSequential([
-        tf.keras.layers.Dense(variant['hidden_size'], input_shape=(obs_size,)),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.Dense(variant['hidden_size']),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.Dense(1)],
-        name='value_function')
-
     logger = TensorboardLogger(variant['logging_dir'])
     policy = Gaussian(policy)
 
-    algorithm = PPO(
+    algorithm = PolicyGradient(
         policy,
-        value_function,
         policy_learning_rate=variant['policy_learning_rate'],
-        critic_learning_rate=variant['critic_learning_rate'],
         epoch=variant['epoch'],
         batch_size=variant['batch_size'],
-        epsilon=variant['epsilon'],
         entropy_bonus=variant['entropy_bonus'],
         logger=logger,
         name='ppo/')
 
-    agent = GaeAgent(
+    agent = PolicyAgent(
         policy,
-        value_function,
         discount=variant['discount'],
-        lamb=variant['lamb'],
         obs_selector=variant['obs_selector'])
 
     sampler = ParallelSampler(

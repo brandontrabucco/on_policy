@@ -1,45 +1,15 @@
-from on_policy.data.worker import Worker, identity
-from on_policy import init_process
-import time
-import multiprocessing
-import tree
 import numpy as np
+import tree
 
 
 map = tree.map_structure_up_to
 concat = np.concatenate
 
 
-def launch_worker(set_weights_queue,
-                  sample_queue,
-                  out_queue,
-                  *args,
-                  **kwargs):
-    """Creates a python process that loops forever and responds to
-    inputs via multiprocessing queues
+def identity(x):
+    """A default function that can be pickled"""
 
-    Arguments:
-
-    set_weights_queue: Queue
-        a queue that provides updates weights to use to collect
-        samples using new policies
-    sample_queue: Queue
-        a queue that accepts the number of samples to be
-        collected using the current agent
-    out_queue: Queue
-        a queue that will contain samples returned bvy the worker
-        processes when collecting data"""
-
-    init_process()
-    worker = Worker(*args, **kwargs)
-    while True:
-        if not set_weights_queue.empty():
-            worker.set_weights(set_weights_queue.get())
-        if not sample_queue.empty():
-            a, b, c = sample_queue.get()
-            out_queue.put(worker.sample(a, deterministic=b, render=c))
-        else:
-            time.sleep(0.05)
+    return x
 
 
 class Sampler(object):
@@ -47,7 +17,6 @@ class Sampler(object):
     def __init__(self,
                  env,
                  agent,
-                 num_workers=10,
                  max_horizon=1000,
                  act_selector=identity,
                  obs_spec=None,
@@ -63,15 +32,12 @@ class Sampler(object):
         agent: PicklingModel
             a keras model wrapped with a helper class that enables the model
             to be pickled and sent between threads
-        num_workers: int
-            the number of parallel sampling processes to use when collecting
-            roll outs to train the agent
         max_horizon: int
             the maximum number of roll out steps before an episode terminates
             can be set to infinity
-        act_selector: Callable
-            a function that selects into a possibly nested structure of
-            actions output from the policy
+        obs_selector: Callable
+            a function that selects into a possibly nested observation
+            from the environment
         obs_spec: Any
             a nested structure with the same topology as the observations
             from the environment
@@ -79,45 +45,13 @@ class Sampler(object):
             a nested structure with the same topology as the actions
             from the policy"""
 
-        self.num_workers = num_workers
+        self.env = env
+        self.agent = agent
+        self.max_horizon = max_horizon
+
+        self.act_selector = act_selector
         self.obs_spec = obs_spec
         self.act_spec = act_spec
-        self.kwargs = dict(max_horizon=max_horizon,
-                           act_selector=act_selector,
-                           obs_spec=obs_spec,
-                           act_spec=act_spec)
-
-        # create queues to pass messages between sampling processes
-        self.set_weights_queues = [
-            multiprocessing.Queue() for i in range(num_workers)]
-        self.sample_queues = [
-            multiprocessing.Queue() for i in range(num_workers)]
-        self.out_queues = [
-            multiprocessing.Queue() for i in range(num_workers)]
-
-        # create parallel worker sampling processes
-        self.p = [multiprocessing.Process(
-            target=launch_worker,
-            kwargs=self.kwargs,
-            args=(self.set_weights_queues[i],
-                  self.sample_queues[i],
-                  self.out_queues[i],
-                  env,
-                  agent)) for i in range(num_workers)]
-
-    def __enter__(self):
-        """Start each of the worker processes and begin waiting for
-        instructions for collecting data"""
-
-        [process.start() for process in self.p]
-
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Start each of the worker processes and begin waiting for
-        instructions for collecting data"""
-
-        [process.terminate() for process in self.p]
 
     def set_weights(self,
                     weights):
@@ -130,8 +64,7 @@ class Sampler(object):
             a list of variables that can be obtained by calling
             model.get_weights on a copy of self.policy"""
 
-        for q in self.set_weights_queues:
-            q.put(weights)
+        self.agent.set_weights(weights)
 
     def sample(self,
                min_num_steps,
@@ -174,42 +107,110 @@ class Sampler(object):
             by the agent for splitting later on
             shaped like [num_episodes]"""
 
-        # calculate how many samples to collect per worker
-        for i, q in enumerate(self.sample_queues):
-            per_worker = min_num_steps // self.num_workers
-            per_worker += 1 if i < min_num_steps % self.num_workers else 0
-            q.put([per_worker, deterministic, render and i == 0])
+        end_of_episode = True
+        time_step = 0
 
-        # create a buffer to store incoming data
+        # the actions and observations can be structures
+        observations = []
+        actions = []
+        rewards = []
+
+        # collect precisely min_num_steps numbers of transitions
+        for step in range(min_num_steps):
+
+            # called at the beginning of each episode
+            if end_of_episode:
+                o = self.env.reset()
+                time_step = 0
+
+                observations.append(map(self.obs_spec, lambda x: [x], o))
+                actions.append(tree.map_structure(lambda _: [], self.act_spec))
+                rewards.append([])
+
+            # select the right observation for the policy
+            o = map(self.obs_spec,
+                    lambda x: x[-1][np.newaxis, ...],
+                    observations[-1])
+
+            # choose to apply the exploration or evaluation policy
+            if deterministic:
+                a = self.agent.expected_value(time_step, o)
+            else:
+                a = self.agent.sample(time_step, o)
+
+            # remove the batch dimension
+            a = map(self.act_spec, lambda x: x[0], a)
+
+            # apply atomic actions in the environment
+            o, r, end_of_episode, _ = self.env.step(self.act_selector(a))
+            time_step += 1
+
+            # render the environment
+            if render:
+                self.env.render()
+
+            # store the transition sampled from the environment
+            map(self.obs_spec, lambda x, y: x.append(y), observations[-1], o)
+            map(self.act_spec, lambda x, y: x.append(y), actions[-1], a)
+            rewards[-1].append(r)
+
+            # terminate if the episode has been running too long
+            if end_of_episode:
+                rewards[-1].append(0.0)
+
+            # terminate if the episode has been running too long
+            elif time_step >= self.max_horizon or step >= min_num_steps - 1:
+                end_of_episode = True
+
+                # select the right observation for the policy
+                last_o = map(self.obs_spec,
+                             lambda x: x[-1][np.newaxis, ...],
+                             observations[-1])
+
+                # bootstrap the reward-to-go to account for time steps
+                # beyond the arbitrary episode horizon
+                # https://github.com/openai/spinningup/blob/master
+                # /spinup/algos/tf1/ppo/ppo.py#L41
+                rewards[-1].append(self.agent.get_values(last_o)[0])
+
         out_o = tree.map_structure(lambda _: [], self.obs_spec)
         out_a = tree.map_structure(lambda _: [], self.act_spec)
         out_ret = tree.map_structure(lambda _: [], self.act_spec)
         out_adv = tree.map_structure(lambda _: [], self.act_spec)
         out_rew = []
-        out_lengths = []
+        out_lengths = np.array([len(r) - 1 for r in rewards])
 
-        # keep track of which of the workers has finished sp far
-        open_set = set(range(self.num_workers))
+        # post process the sampled data and convert into
+        # a standard format for training
+        for path_r, path_a, path_o in zip(rewards,
+                                          actions,
+                                          observations):
 
-        # collect data when a worker pushes it into the queue
-        while len(open_set) > 0:
-            time.sleep(0.05)
-            for i in set(open_set):
-                if not self.out_queues[i].empty():
-                    o, a, ret, adv, rew, lengths = self.out_queues[i].get()
-                    open_set.remove(i)
+            # convert samples to float32
+            path_o = map(self.obs_spec, lambda x: np.array(x, np.float32), path_o)
+            path_a = map(self.act_spec, lambda x: np.array(x), path_a)
 
-                    # add the worker result to an output buffer
-                    map(self.obs_spec,
-                        lambda x, y: x.append(y), out_o, o)
-                    map(self.act_spec,
-                        lambda x, y: x.append(y), out_a, a)
-                    map(self.act_spec,
-                        lambda x, y: x.append(y), out_ret, ret)
-                    map(self.act_spec,
-                        lambda x, y: x.append(y), out_adv, adv)
-                    out_rew.append(rew)
-                    out_lengths.append(lengths)
+            # process the agent's reward function
+            path_r = np.array(path_r, np.float32)
+            agnt_r = self.agent.get_rewards(path_r, path_o, path_a)
+
+            # create labels for the returns and generalized advantages
+            path_ret = self.agent.get_returns(agnt_r)
+            path_adv = self.agent.get_advantages(agnt_r, path_o)
+
+            # remove the final observation that is unused
+            path_o = map(self.obs_spec, lambda x: x[:-1], path_o)
+
+            # add the processed samples to the return buffer
+            map(self.obs_spec,
+                lambda x, y: x.append(y), out_o, path_o)
+            map(self.act_spec,
+                lambda x, y: x.append(y), out_a, path_a)
+            map(self.act_spec,
+                lambda x, y: x.append(y), out_ret, path_ret)
+            map(self.act_spec,
+                lambda x, y: x.append(y), out_adv, path_adv)
+            out_rew.append(path_r[:-1])
 
         # concatenate samples into a contiguous batch
         out_o = map(self.obs_spec,
@@ -221,7 +222,6 @@ class Sampler(object):
         out_adv = map(self.act_spec,
                       lambda x: concat(x, axis=0), out_adv)
         out_rew = concat(out_rew, axis=0)
-        out_lengths = concat(out_lengths, axis=0)
 
         return (out_o,
                 out_a,

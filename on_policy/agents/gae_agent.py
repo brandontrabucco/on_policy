@@ -1,6 +1,6 @@
 from on_policy.agents.policy_agent import PolicyAgent
 from on_policy.utils.math import discounted_sum
-from on_policy.data.worker import identity
+from on_policy.data.sampler import identity
 
 
 class GaeAgent(PolicyAgent):

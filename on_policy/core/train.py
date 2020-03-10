@@ -42,7 +42,7 @@ def train(sampler,
              lengths) = sampler.sample(
                 steps_per_iteration,
                 deterministic=True,
-                render=False)
+                render=True)
 
             logger.record('eval/returns', [
                 tf.reduce_sum(x)

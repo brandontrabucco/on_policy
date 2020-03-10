@@ -76,6 +76,7 @@ class Agent(ABC):
 
         return NotImplemented
 
+    @abstractmethod
     def get_rewards(self,
                     rewards,
                     observations,
@@ -100,7 +101,7 @@ class Agent(ABC):
         values: tf.Tensor
             values representing the discounted future return"""
 
-        return rewards
+        return NotImplemented
 
     @abstractmethod
     def get_values(self,

@@ -1,6 +1,6 @@
 from on_policy.agents.agent import Agent
 from on_policy.utils.math import discounted_sum
-from on_policy.data.worker import identity
+from on_policy.data.sampler import identity
 import tensorflow as tf
 
 
@@ -104,6 +104,32 @@ class PolicyAgent(Agent):
             samples = tf.clip_by_value(samples, -1., 1.)
         return samples
 
+    def get_rewards(self,
+                    rewards,
+                    observations,
+                    actions):
+        """Calculates the values of the provided states using the
+        value function that belongs to the agent
+
+        Arguments:
+
+        rewards: tf.Tensor
+            a tensor that contains the rewards from teh environment that
+            the agent experienced
+        observations: tf.Tensor
+            a tensor that contains observations experienced by the agent
+            during data collection
+        actions: tf.Tensor
+            a tensor that contains actions taken by the agent during
+            data collection
+
+        Returns:
+
+        values: tf.Tensor
+            values representing the discounted future return"""
+
+        return rewards
+
     def get_values(self,
                    observations):
         """Calculates the values of the provided states using the
@@ -120,7 +146,7 @@ class PolicyAgent(Agent):
         values: tf.Tensor
             values representing the discounted future return"""
 
-        return tf.zeros([self.obs_selector(observations).get_shape()[0]], tf.float32)
+        return tf.zeros([self.obs_selector(observations).shape[0]], tf.float32)
 
     def get_returns(self,
                     rewards):
@@ -138,11 +164,11 @@ class PolicyAgent(Agent):
         returns: tf.Tensor
             means from the current exploration policy"""
 
-        return discounted_sum(rewards, self.discount)
+        return discounted_sum(rewards, self.discount)[:-1]
 
     def get_advantages(self,
                        rewards,
-                       inputs):
+                       observations):
         """Calculates the advantages across a single episode
         using the agent's discount factor
 
