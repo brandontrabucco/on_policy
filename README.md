@@ -1,6 +1,6 @@
 # On Policy Hierarchal RL Algorithms
 
-This package implements on policy reinforcement learningthat supports training agents arranged in a graph structure. Two special cases are multi-agent rl and hierarchical rl.
+This package implements on policy reinforcement learningthat supports training agents arranged in a graph structure. Two special cases are multi-agent rl and hierarchical rl. Have Fun! -Brandon
 
 # Installation
 
