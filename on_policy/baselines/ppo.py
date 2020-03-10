@@ -1,11 +1,11 @@
-from itch.models import PicklingSequential
-from itch.utils.tensorboard_logger import TensorboardLogger
-from itch.core.distributions import Gaussian
-from itch.algorithms.ppo import PPO
-from itch.agents.gae_agent import GaeAgent
-from itch.data.sampler import Sampler
-from itch.core.train import train
-from itch.data.worker import identity
+from on_policy.models import PicklingSequential
+from on_policy.utils.tensorboard_logger import TensorboardLogger
+from on_policy.core.distributions import Gaussian
+from on_policy.algorithms.ppo import PPO
+from on_policy.agents.gae_agent import GaeAgent
+from on_policy.data.sampler import Sampler
+from on_policy.core.train import train
+from on_policy.data.worker import identity
 import tensorflow as tf
 
 

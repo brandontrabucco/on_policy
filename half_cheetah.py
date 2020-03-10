@@ -1,5 +1,5 @@
-from itch.baselines.ppo import ppo, ppo_variant
-from itch.launch import launch
+from on_policy.baselines.ppo import ppo, ppo_variant
+from on_policy.launch import launch
 import gym
 
 

@@ -1,6 +1,6 @@
-from itch.agents.agent import Agent
-from itch.utils.math import discounted_sum
-from itch.data.worker import identity
+from on_policy.agents.agent import Agent
+from on_policy.utils.math import discounted_sum
+from on_policy.data.worker import identity
 import tensorflow as tf
 
 

@@ -1,4 +1,4 @@
-from itch import init_process
+from on_policy import init_process
 import tensorflow as tf
 import tempfile
 

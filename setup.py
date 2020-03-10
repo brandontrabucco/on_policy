@@ -6,13 +6,12 @@ REQUIRED_PACKAGES = [
     'tensorflow==2.1',
     'tensorflow_probability',
     'gym[all]',
-    'dm-control',
     'dm-tree']
 
 
 setup(
-    name='itch',
+    name='on_policy',
     version='0.1',
     install_requires=REQUIRED_PACKAGES,
     packages=find_packages(),
-    description='Information Theoretic Control Hierarchies')
+    description='On Policy Hierarchal RL Algorithms')

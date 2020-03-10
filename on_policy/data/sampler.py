@@ -1,5 +1,5 @@
-from itch.data.worker import Worker, identity
-from itch import init_process
+from on_policy.data.worker import Worker, identity
+from on_policy import init_process
 import time
 import multiprocessing
 import tree

@@ -1,4 +1,4 @@
-from itch.algorithms.algorithm import Algorithm
+from on_policy.algorithms.algorithm import Algorithm
 import tensorflow as tf
 import math
 
