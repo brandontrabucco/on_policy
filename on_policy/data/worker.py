@@ -191,12 +191,12 @@ class Worker(object):
             path_a = map(self.act_spec, lambda x: np.array(x), path_a)
 
             # process the agent's reward function
-            path_r = self.agent.get_rewards(
-                np.array(path_r, np.float32), path_o, path_a)
+            path_r = np.array(path_r, np.float32)
+            agnt_r = self.agent.get_rewards(path_r, path_o, path_a)
 
             # create labels for the returns and generalized advantages
-            path_ret = self.agent.get_returns(path_r)[:-1]
-            path_adv = self.agent.get_advantages(path_r, path_o)
+            path_ret = self.agent.get_returns(agnt_r)[:-1]
+            path_adv = self.agent.get_advantages(agnt_r, path_o)
 
             # remove the final observation that is unused
             path_o = map(self.obs_spec, lambda x: x[:-1], path_o)
