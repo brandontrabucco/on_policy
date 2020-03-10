@@ -34,16 +34,41 @@ def train(sampler,
 
             sampler.set_weights(agent.get_weights())
 
-            _, _, _, rew, _, _, lengths = sampler.sample(
-                steps_per_iteration, deterministic=True, render=False)
+            (observations,
+             actions,
+             log_probabilities,
+             returns,
+             advantages,
+             rewards,
+             lengths) = sampler.sample(
+                steps_per_iteration,
+                deterministic=True,
+                render=False)
+
             logger.record('eval/returns', [
-                tf.reduce_sum(x) for x in tf.split(rew, lengths)])
+                tf.reduce_sum(x)
+                for x in tf.split(rewards, lengths)])
 
-            obs, act, lgp, rew, ret, adv, lengths = sampler.sample(
-                steps_per_iteration, deterministic=False, render=False)
+            (observations,
+             actions,
+             log_probabilities,
+             returns,
+             advantages,
+             rewards,
+             lengths) = sampler.sample(
+                steps_per_iteration,
+                deterministic=False,
+                render=False)
+
             logger.record('train/returns', [
-                tf.reduce_sum(x) for x in tf.split(rew, lengths)])
+                tf.reduce_sum(x)
+                for x in tf.split(rewards, lengths)])
 
-            num_steps += np.sum(lengths)
+            num_steps = num_steps + np.sum(lengths)
             logger.set_step(num_steps)
-            algorithm.train(obs, act, lgp, ret, adv)
+
+            algorithm.train(observations,
+                            actions,
+                            log_probabilities,
+                            returns,
+                            advantages)

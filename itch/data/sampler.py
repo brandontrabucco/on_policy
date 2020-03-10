@@ -164,14 +164,14 @@ class Sampler(object):
             a tensor containing the log probabilities of the actions
             taken by the agent during a roll out
             that is shaped like [batch_dim]
-        rewards: np.ndarray
-            a tensor containing rewards experienced by the agent
-            that is shaped like [batch_dim]
         returns:np.ndarray
             a tensor containing returns experienced by the agent
             that is shaped like [batch_dim]
         advantages:np.ndarray
             a tensor containing advantages estimated by the agent
+            that is shaped like [batch_dim]
+        rewards: np.ndarray
+            a tensor containing rewards experienced by the agent
             that is shaped like [batch_dim]
         lengths: np.ndarray
             a tensor containing the episode lengths experienced
@@ -188,9 +188,9 @@ class Sampler(object):
         out_o = tree.map_structure(lambda _: [], self.obs_spec)
         out_a = tree.map_structure(lambda _: [], self.act_spec)
         out_p = tree.map_structure(lambda _: [], self.act_spec)
-        out_rew = []
         out_ret = tree.map_structure(lambda _: [], self.act_spec)
         out_adv = tree.map_structure(lambda _: [], self.act_spec)
+        out_rew = []
         out_lengths = []
 
         # keep track of which of the workers has finished sp far
@@ -201,7 +201,7 @@ class Sampler(object):
             time.sleep(0.05)
             for i in set(open_set):
                 if not self.out_queues[i].empty():
-                    o, a, p, rew, ret, adv, lengths = self.out_queues[i].get()
+                    o, a, p, ret, adv, rew, lengths = self.out_queues[i].get()
                     open_set.remove(i)
 
                     # add the worker result to an output buffer
@@ -211,11 +211,11 @@ class Sampler(object):
                         lambda x, y: x.append(y), out_a, a)
                     map(self.act_spec,
                         lambda x, y: x.append(y), out_p, p)
-                    out_rew.append(rew)
                     map(self.act_spec,
                         lambda x, y: x.append(y), out_ret, ret)
                     map(self.act_spec,
                         lambda x, y: x.append(y), out_adv, adv)
+                    out_rew.append(rew)
                     out_lengths.append(lengths)
 
         # concatenate samples into a contiguous batch
@@ -225,17 +225,17 @@ class Sampler(object):
                     lambda x: concat(x, axis=0), out_a)
         out_p = map(self.act_spec,
                     lambda x: concat(x, axis=0), out_p)
-        out_rew = concat(out_rew, axis=0)
         out_ret = map(self.act_spec,
                       lambda x: concat(x, axis=0), out_ret)
         out_adv = map(self.act_spec,
                       lambda x: concat(x, axis=0), out_adv)
+        out_rew = concat(out_rew, axis=0)
         out_lengths = concat(out_lengths, axis=0)
 
         return (out_o,
                 out_a,
                 out_p,
-                out_rew,
                 out_ret,
                 out_adv,
+                out_rew,
                 out_lengths)

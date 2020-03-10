@@ -97,14 +97,14 @@ class Worker(object):
             a tensor containing the log probabilities of the actions
             taken by the agent during a roll out
             that is shaped like [batch_dim]
-        rewards: np.ndarray
-            a tensor containing rewards experienced by the agent
-            that is shaped like [batch_dim]
         returns: np.ndarray
             a tensor containing returns experienced by the agent
             that is shaped like [batch_dim]
         advantages: np.ndarray
             a tensor containing advantages estimated by the agent
+            that is shaped like [batch_dim]
+        rewards: np.ndarray
+            a tensor containing rewards experienced by the agent
             that is shaped like [batch_dim]
         lengths: np.ndarray
             a tensor containing the episode lengths experienced
@@ -180,9 +180,10 @@ class Worker(object):
         out_o = tree.map_structure(lambda _: [], self.obs_spec)
         out_a = tree.map_structure(lambda _: [], self.act_spec)
         out_p = tree.map_structure(lambda _: [], self.act_spec)
-        out_rew = []
         out_ret = tree.map_structure(lambda _: [], self.act_spec)
         out_adv = tree.map_structure(lambda _: [], self.act_spec)
+        out_rew = []
+        out_lengths = np.array([len(r) - 1 for r in rewards])
 
         # post process the sampled data and convert into
         # a standard format for training
@@ -214,11 +215,11 @@ class Worker(object):
                 lambda x, y: x.append(y), out_a, path_a)
             map(self.act_spec,
                 lambda x, y: x.append(y), out_p, path_p)
-            out_rew.append(path_r[:-1])
             map(self.act_spec,
                 lambda x, y: x.append(y), out_ret, path_ret)
             map(self.act_spec,
                 lambda x, y: x.append(y), out_adv, path_adv)
+            out_rew.append(path_r[:-1])
 
         # concatenate samples into a contiguous batch
         out_o = map(self.obs_spec,
@@ -227,17 +228,16 @@ class Worker(object):
                     lambda x: concat(x, axis=0), out_a)
         out_p = map(self.act_spec,
                     lambda x: concat(x, axis=0), out_p)
-        out_rew = concat(out_rew, axis=0)
         out_ret = map(self.act_spec,
                       lambda x: concat(x, axis=0), out_ret)
         out_adv = map(self.act_spec,
                       lambda x: concat(x, axis=0), out_adv)
-        out_lengths = np.array([len(r) - 1 for r in rewards])
+        out_rew = concat(out_rew, axis=0)
 
         return (out_o,
                 out_a,
                 out_p,
-                out_rew,
                 out_ret,
                 out_adv,
+                out_rew,
                 out_lengths)
