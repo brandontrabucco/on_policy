@@ -67,26 +67,26 @@ class GaeAgent(PolicyAgent):
         self.value_function.set_weights(weights[1])
 
     def get_values(self,
-                   inputs):
+                   observations):
         """Calculates the values of the provided states using the
         value function that belongs to the agent
 
         Arguments:
 
-        inputs: list[tf.Tensor]
-            a list of tensors that contain observations to the
-            current value function
+        observations: tf.Tensor
+            a tensor that contains observations experienced by the agent
+            during data collection
 
         Returns:
 
         values: tf.Tensor
             values representing the discounted future return"""
 
-        return self.value_function(self.obs_selector(inputs))[:, 0]
+        return self.value_function(self.obs_selector(observations))[:, 0]
 
     def get_advantages(self,
                        rewards,
-                       inputs):
+                       observations):
         """Calculates the advantages across a single episode
         using the agent's discount factor
 
@@ -95,9 +95,9 @@ class GaeAgent(PolicyAgent):
         rewards: tf.Tensor
             a sequence of rewards that were achieved during this episode
             used to compute discounted reward-to-go
-        inputs: list[tf.Tensor]
-            a list of tensors that contain observations to the
-            current value function
+        observations: tf.Tensor
+            a tensor that contains observations experienced by the agent
+            during data collection
 
         Returns:
 
@@ -105,6 +105,6 @@ class GaeAgent(PolicyAgent):
             estimates of the current advantage function"""
 
         # calculate generalized advantage estimates
-        values = self.get_values(inputs)
+        values = self.get_values(observations)
         delta_v = rewards[:-1] + self.discount * values[1:] - values[:-1]
         return discounted_sum(delta_v, self.discount * self.lamb)

@@ -187,10 +187,12 @@ class Worker(object):
                                           observations):
 
             # convert samples to float32
-            path_r = np.array(path_r, np.float32)
-            path_o = map(self.obs_spec,
-                         lambda x: np.array(x, np.float32),
-                         path_o)
+            path_o = map(self.obs_spec, lambda x: np.array(x, np.float32), path_o)
+            path_a = map(self.act_spec, lambda x: np.array(x), path_a)
+
+            # process the agent's reward function
+            path_r = self.agent.get_rewards(
+                np.array(path_r, np.float32), path_o, path_a)
 
             # create labels for the returns and generalized advantages
             path_ret = self.agent.get_returns(path_r)[:-1]
@@ -198,7 +200,6 @@ class Worker(object):
 
             # remove the final observation that is unused
             path_o = map(self.obs_spec, lambda x: x[:-1], path_o)
-            path_a = map(self.act_spec, lambda x: np.array(x), path_a)
 
             # add the processed samples to the return buffer
             map(self.obs_spec,

@@ -33,7 +33,7 @@ class Agent(ABC):
     @abstractmethod
     def sample(self,
                time_step,
-               inputs):
+               observations):
         """Samples from a tensorflow probability distribution defined
         by the current policy
 
@@ -42,8 +42,8 @@ class Agent(ABC):
         time_step: tf.Tensor
             the current time step of the simulation that is necessary
             for constructing delayed hierarchies
-        *inputs: list[tf.Tensor]
-            a list of tensors that contains inputs that parameterize the
+        observations: tf.Tensor
+            a tensor that contains observations to the
             probability distribution
 
         Returns:
@@ -56,7 +56,7 @@ class Agent(ABC):
     @abstractmethod
     def expected_value(self,
                        time_step,
-                       inputs):
+                       observations):
         """Samples the mean from a tensorflow probability distribution
         defined by the current policy
 
@@ -65,8 +65,8 @@ class Agent(ABC):
         time_step: tf.Tensor
             the current time step of the simulation that is necessary
             for constructing delayed hierarchies
-        *inputs: list[tf.Tensor]
-            a list of tensors that contains inputs that parameterize the
+        observations: tf.Tensor
+            a tensor that contains observations to the
             probability distribution
 
         Returns:
@@ -76,42 +76,42 @@ class Agent(ABC):
 
         return NotImplemented
 
-    @abstractmethod
-    def log_prob(self,
-                 time_step,
-                 actions,
-                 inputs):
-        """Samples the mean from a tensorflow probability distribution
-        defined by the current policy
-
-        Arguments:
-
-        time_step: tf.Tensor
-            the current time step of the simulation that is necessary
-            for constructing delayed hierarchies
-        actions: list[tf.Tensor]
-            a structure of tensors that contains actions taken by the agent
-            during a roll out; used for importance sampling
-        *inputs: list[tf.Tensor]
-            a list of tensors that contains inputs that parameterize the
-            probability distribution
-
-        Returns:
-
-        log_prob: tf.Tensor
-            log probability under the exploration policy"""
-
-        return NotImplemented
-
-    def get_values(self,
-                   inputs):
+    def get_rewards(self,
+                    rewards,
+                    observations,
+                    actions):
         """Calculates the values of the provided states using the
         value function that belongs to the agent
 
         Arguments:
 
-        *inputs: list[tf.Tensor]
-            a list of tensors that contain observations to the
+        rewards: tf.Tensor
+            a tensor that contains the rewards from teh environment that
+            the agent experienced
+        observations: tf.Tensor
+            a tensor that contains observations experienced by the agent
+            during data collection
+        actions: tf.Tensor
+            a tensor that contains actions taken by the agent during
+            data collection
+
+        Returns:
+
+        values: tf.Tensor
+            values representing the discounted future return"""
+
+        return rewards
+
+    @abstractmethod
+    def get_values(self,
+                   observations):
+        """Calculates the values of the provided states using the
+        value function that belongs to the agent
+
+        Arguments:
+
+        observations: tf.Tensor
+            a tensor that contains observations to the
             current value function
 
         Returns:
@@ -121,6 +121,7 @@ class Agent(ABC):
 
         return NotImplemented
 
+    @abstractmethod
     def get_returns(self,
                     rewards):
         """Calculates the discounted sum of returns across a single
@@ -139,9 +140,10 @@ class Agent(ABC):
 
         return NotImplemented
 
+    @abstractmethod
     def get_advantages(self,
                        rewards,
-                       inputs):
+                       observations):
         """Calculates the advantages across a single episode
         using the agent's discount factor
 
@@ -150,8 +152,8 @@ class Agent(ABC):
         rewards: tf.Tensor
             a sequence of rewards that were achieved during this episode
             used to compute discounted reward-to-go
-        *inputs: list[tf.Tensor]
-            a list of tensors that contain observations to the
+        observations: tf.Tensor
+            a tensor that contains observations to the
             current value function
 
         Returns:

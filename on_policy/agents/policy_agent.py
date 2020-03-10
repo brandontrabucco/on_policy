@@ -56,7 +56,7 @@ class PolicyAgent(Agent):
 
     def sample(self,
                time_step,
-               inputs):
+               observations):
         """Samples from a tensorflow probability distribution defined
         by the current policy
 
@@ -65,23 +65,23 @@ class PolicyAgent(Agent):
         time_step: tf.Tensor
             the current time step of the simulation that is necessary
             for constructing delayed hierarchies
-        inputs: list[tf.Tensor]
-            a list of tensors that contains inputs that parameterize the
-            probability distribution
+        observations: tf.Tensor
+            a tensor that contains observations experienced by the agent
+            during data collection
 
         Returns:
 
         samples: tf.Tensor
             samples from the current exploration policy"""
 
-        samples = self.policy(self.obs_selector(inputs)).sample()
+        samples = self.policy(self.obs_selector(observations)).sample()
         if samples.dtype == tf.float32:
             samples = tf.clip_by_value(samples, -1., 1.)
         return samples
 
     def expected_value(self,
                        time_step,
-                       inputs):
+                       observations):
         """Samples the mean from a tensorflow probability distribution
         defined by the current policy
 
@@ -90,63 +90,37 @@ class PolicyAgent(Agent):
         time_step: tf.Tensor
             the current time step of the simulation that is necessary
             for constructing delayed hierarchies
-        inputs: list[tf.Tensor]
-            a list of tensors that contains inputs that parameterize the
-            probability distribution
+        observations: tf.Tensor
+            a tensor that contains observations experienced by the agent
+            during data collection
 
         Returns:
 
         samples: tf.Tensor
             means from the current exploration policy"""
 
-        samples = self.policy(self.obs_selector(inputs)).mean()
+        samples = self.policy(self.obs_selector(observations)).mean()
         if samples.dtype == tf.float32:
             samples = tf.clip_by_value(samples, -1., 1.)
         return samples
 
-    def log_prob(self,
-                 time_step,
-                 actions,
-                 inputs):
-        """Samples the mean from a tensorflow probability distribution
-        defined by the current policy
-
-        Arguments:
-
-        time_step: tf.Tensor
-            the current time step of the simulation that is necessary
-            for constructing delayed hierarchies
-        actions: list[tf.Tensor]
-            a structure of tensors that contains actions taken by the agent
-            during a roll out; used for importance sampling
-        inputs: list[tf.Tensor]
-            a list of tensors that contains inputs that parameterize the
-            probability distribution
-
-        Returns:
-
-        log_prob: tf.Tensor
-            log probability under the exploration policy"""
-
-        return self.policy(self.obs_selector(inputs)).log_prob(actions)
-
     def get_values(self,
-                   inputs):
+                   observations):
         """Calculates the values of the provided states using the
         value function that belongs to the agent
 
         Arguments:
 
-        inputs: list[tf.Tensor]
-            a list of tensors that contain observations to the
-            current value function
+        observations: tf.Tensor
+            a tensor that contains observations experienced by the agent
+            during data collection
 
         Returns:
 
         values: tf.Tensor
             values representing the discounted future return"""
 
-        return tf.zeros([self.obs_selector(inputs).get_shape()[0]], tf.float32)
+        return tf.zeros([self.obs_selector(observations).get_shape()[0]], tf.float32)
 
     def get_returns(self,
                     rewards):
@@ -177,9 +151,9 @@ class PolicyAgent(Agent):
         rewards: tf.Tensor
             a sequence of rewards that were achieved during this episode
             used to compute discounted reward-to-go
-        inputs: list[tf.Tensor]
-            a list of tensors that contain observations to the
-            current value function
+        observations: tf.Tensor
+            a tensor that contains observations experienced by the agent
+            during data collection
 
         Returns:
 
