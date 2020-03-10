@@ -1,6 +1,6 @@
 from on_policy.keras_utils import PicklingSequential
 from on_policy.utils.tensorboard_logger import TensorboardLogger
-from on_policy.core.distributions import Gaussian
+from on_policy.distributions import Gaussian
 from on_policy.algorithms.ppo import PPO
 from on_policy.agents.gae_agent import GaeAgent
 from on_policy.data.sampler import Sampler

@@ -1,6 +1,6 @@
 from on_policy.baselines.ppo import ppo, ppo_variant
-from on_policy.launch import launch
-from on_policy.pointmass_env import PointmassEnv
+from on_policy.core.launch import launch
+from on_policy.envs.pointmass_env import PointmassEnv
 
 
 if __name__ == "__main__":

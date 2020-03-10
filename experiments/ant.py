@@ -1,5 +1,5 @@
 from on_policy.baselines.ppo import ppo, ppo_variant
-from on_policy.launch import launch
+from on_policy.core.launch import launch
 import gym
 
 
