@@ -1,4 +1,4 @@
-from on_policy.models import PicklingSequential
+from on_policy.keras_utils import PicklingSequential
 from on_policy.utils.tensorboard_logger import TensorboardLogger
 from on_policy.core.distributions import Gaussian
 from on_policy.algorithms.ppo import PPO
