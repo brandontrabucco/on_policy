@@ -1,9 +1,9 @@
-checkpoint
-step
-events.out.tfevents.**
+*checkpoint
+*step
+*events.out.tfevents.**
 *.egg-info**
 *.ckpt**
-.idea**
+*.idea**
 *.out**
 *.pkl**
 *.txt**
