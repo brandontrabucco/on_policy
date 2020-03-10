@@ -105,6 +105,6 @@ class GaeAgent(PolicyAgent):
             estimates of the current advantage function"""
 
         # calculate generalized advantage estimates
-        val = self.get_values(self.obs_selector(inputs))
+        val = self.get_values(inputs)
         delta_v = rewards[:-1] + self.discount * val[1:] - val[:-1]
         return discounted_sum(delta_v, self.discount * self.lamb)
