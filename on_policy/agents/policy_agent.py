@@ -74,10 +74,7 @@ class PolicyAgent(Agent):
         samples: tf.Tensor
             samples from the current exploration policy"""
 
-        samples = self.policy(self.obs_selector(observations)).sample()
-        if samples.dtype == tf.float32:
-            samples = tf.clip_by_value(samples, -1., 1.)
-        return samples
+        return self.policy(self.obs_selector(observations)).sample()
 
     def expected_value(self,
                        time_step,
@@ -99,10 +96,7 @@ class PolicyAgent(Agent):
         samples: tf.Tensor
             means from the current exploration policy"""
 
-        samples = self.policy(self.obs_selector(observations)).mean()
-        if samples.dtype == tf.float32:
-            samples = tf.clip_by_value(samples, -1., 1.)
-        return samples
+        return self.policy(self.obs_selector(observations)).mean()
 
     def get_rewards(self,
                     rewards,

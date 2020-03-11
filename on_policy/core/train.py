@@ -26,10 +26,11 @@ def train(sampler,
     steps_per_iteration: int
         the number of environment steps to collect per iteration"""
 
-    num_steps = 0
-    logger.set_step(num_steps)
-
     with sampler:
+
+        num_steps = 0
+        logger.set_step(num_steps)
+
         for i in range(iterations):
 
             sampler.set_weights(agent.get_weights())

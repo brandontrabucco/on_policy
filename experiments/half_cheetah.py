@@ -19,7 +19,7 @@ if __name__ == "__main__":
         lamb=0.95,
         num_workers=1,
         max_horizon=2048,
-        iterations=489,
+        iterations=500,
         steps_per_iteration=2048))
     launch(ppo,
            ppo_variant,

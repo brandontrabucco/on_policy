@@ -45,11 +45,17 @@ def policy_gradient(variant,
         tf.keras.layers.Activation('relu'),
         tf.keras.layers.Dense(variant['hidden_size']),
         tf.keras.layers.Activation('relu'),
-        tf.keras.layers.Dense(act_size * 2)],
+        tf.keras.layers.Dense(act_size)],
         name='policy')
 
+    scale = (env.action_space.high - env.action_space.low) / 2
+    shift = (env.action_space.high + env.action_space.low) / 2
+    policy = Gaussian(policy,
+                      log_scale=tf.math.log(tf.tile([[0.1]], [1, act_size])),
+                      out_scale=scale[tf.newaxis],
+                      out_shift=shift[tf.newaxis])
+
     logger = TensorboardLogger(variant['logging_dir'])
-    policy = Gaussian(policy)
 
     algorithm = PolicyGradient(
         policy,
@@ -58,7 +64,7 @@ def policy_gradient(variant,
         batch_size=variant['batch_size'],
         entropy_bonus=variant['entropy_bonus'],
         logger=logger,
-        name='ppo/')
+        name='policy_gradient/')
 
     agent = PolicyAgent(
         policy,

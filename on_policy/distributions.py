@@ -62,7 +62,47 @@ class Distribution(ABC):
             a tensorflow probability distribution that can be sampled or used
             to evaluate the likelihood of samples under"""
 
-        return self._get_distribution(tf.concat(inputs, axis=-1))
+        # returns a probability distribution
+        distribution = self._get_distribution(tf.concat(inputs, axis=-1))
+
+        # if provided; shift the distribution to a desired location
+        # necessary when the prediction space is not [-1., 1.]
+        out_shift = self.__dict__.get('out_shift', None)
+        if out_shift is not None:
+            distribution = tfp.bijectors.Shift(out_shift)(distribution)
+
+        # if provided; shift the distribution to a desired location
+        # necessary when the prediction space is not [-1., 1.]
+        out_scale = self.__dict__.get('out_scale', None)
+        if out_scale is not None:
+            distribution = tfp.bijectors.Scale(out_scale)(distribution)
+
+        # if provided; lower bound the prediction distribution
+        # prevents samples outside the range of the prediction space
+        clip_below = self.__dict__.get('clip_below', None)
+        if clip_below is not None:
+            distribution = tfp.bijectors.Inline(
+                forward_fn=lambda x: tf.maximum(x, clip_below),
+                inverse_fn=lambda x: x,
+                inverse_log_det_jacobian_fn=lambda y: tf.zeros_like(y),
+                is_constant_jacobian=True,
+                is_increasing=True,
+                name='clip_below')(distribution)
+
+        # if provided; upper bound the prediction distribution
+        # prevents samples outside the range of the prediction space
+        clip_above = self.__dict__.get('clip_above', None)
+        if clip_above is not None:
+            distribution = tfp.bijectors.Inline(
+                forward_fn=lambda x: tf.minimum(x, clip_above),
+                inverse_fn=lambda x: x,
+                inverse_log_det_jacobian_fn=lambda y: tf.zeros_like(y),
+                is_constant_jacobian=True,
+                is_increasing=True,
+                name='clip_above')(distribution)
+
+        # return a transformed distribution
+        return distribution
 
     @abstractmethod
     def _get_distribution(self,
@@ -109,7 +149,7 @@ class Gaussian(Distribution):
             to evaluate the likelihood of samples under"""
 
         # functions for controlling the inputs to the distribution
-        loc_fn = self.__dict__.get('loc_fn', tf.tanh)
+        shift_fn = self.__dict__.get('shift_fn', tf.tanh)
         scale_fn = self.__dict__.get('scale_fn', lambda z: z)
         log_scale_fn = self.__dict__.get(
             'log_scale_fn', lambda z: tf.clip_by_value(z, -10., 3.))
@@ -129,7 +169,7 @@ class Gaussian(Distribution):
 
         # create a diagonal gaussian
         return tfp.distributions.MultivariateNormalDiag(
-            loc=loc_fn(loc), scale_diag=scale_fn(scale))
+            loc=shift_fn(loc), scale_diag=scale_fn(scale))
 
 
 class TanhGaussian(Distribution):
@@ -152,7 +192,7 @@ class TanhGaussian(Distribution):
             to evaluate the likelihood of samples under"""
 
         # functions for controlling the inputs to the distribution
-        loc_fn = self.__dict__.get('loc_fn', lambda z: z)
+        shift_fn = self.__dict__.get('shift_fn', lambda z: z)
         scale_fn = self.__dict__.get('scale_fn', lambda z: z)
         log_scale_fn = self.__dict__.get(
             'log_scale_fn', lambda z: tf.clip_by_value(z, -10., 3.))
@@ -173,4 +213,4 @@ class TanhGaussian(Distribution):
         # create a diagonal tanh gaussian distribution
         return tfp.bijectors.Tanh()(
             tfp.distributions.MultivariateNormalDiag(
-                loc=loc_fn(loc), scale_diag=scale_fn(scale)))
+                loc=shift_fn(loc), scale_diag=scale_fn(scale)))

@@ -59,8 +59,13 @@ def ppo(variant,
         tf.keras.layers.Dense(1)],
         name='value_function')
 
+    scale = (env.action_space.high - env.action_space.low) / 2
+    shift = (env.action_space.high + env.action_space.low) / 2
+    policy = Gaussian(policy,
+                      out_scale=scale[tf.newaxis],
+                      out_shift=shift[tf.newaxis])
+
     logger = TensorboardLogger(variant['logging_dir'])
-    policy = Gaussian(policy)
 
     algorithm = PPO(
         policy,
