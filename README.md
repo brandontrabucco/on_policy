@@ -13,5 +13,8 @@ pip install -e on_policy
 
 # Performance
 
-![Alt text](./img/train_returns_max.svg)
-<img src="./img/train_returns_max.svg">
+Below is an evaluation of the Policy Gradient implementation on `InvertedPendulum-v2` with a maximum episode length of 256 and a batch size of 6144.
+
+<p align="center">
+    <img src="./img/train_returns_max.svg" alt="Inverted Pendulum" width="300" height="200" />
+</p>
