@@ -10,3 +10,8 @@ You may install this package by cloning it from github and using pip.
 git clone https://github.com/brandontrabucco/on_policy
 pip install -e on_policy
 ```
+
+# Performance
+
+![Alt text](./img/train_returns_max.svg)
+<img src="./img/train_returns_max.svg">

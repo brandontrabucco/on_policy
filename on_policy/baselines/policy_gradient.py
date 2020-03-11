@@ -53,7 +53,9 @@ def policy_gradient(variant,
     policy = Gaussian(policy,
                       log_scale=tf.math.log(tf.tile([[0.1]], [1, act_size])),
                       out_scale=scale[tf.newaxis],
-                      out_shift=shift[tf.newaxis])
+                      out_shift=shift[tf.newaxis],
+                      clip_below=env.action_space.low[tf.newaxis],
+                      clip_above=env.action_space.high[tf.newaxis])
 
     logger = TensorboardLogger(variant['logging_dir'])
 

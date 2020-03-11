@@ -63,7 +63,9 @@ def ppo(variant,
     shift = (env.action_space.high + env.action_space.low) / 2
     policy = Gaussian(policy,
                       out_scale=scale[tf.newaxis],
-                      out_shift=shift[tf.newaxis])
+                      out_shift=shift[tf.newaxis],
+                      clip_below=env.action_space.low[tf.newaxis],
+                      clip_above=env.action_space.high[tf.newaxis])
 
     logger = TensorboardLogger(variant['logging_dir'])
 
