@@ -53,6 +53,11 @@ if __name__ == "__main__":
 
             values, steps = d['v'], d['s']
 
+            # filter the results to be the same length
+            max_length = max([len(x) for x in values])
+            values = [np.pad(z, [[0, max_length - len(z)]], mode='edge') for z in values]
+            steps = [z for z in steps if len(z) == max_length]
+
             lower = np.min(values, axis=0)
             mean = np.mean(values, axis=0)
             upper = np.max(values, axis=0)
