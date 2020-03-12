@@ -19,4 +19,4 @@ Below is an evaluation of the Policy Gradient and PPO implementations on `Invert
     <img src="./img/inverted_pendulum.svg" alt="Inverted Pendulum" width="600" height="300" />
 </p>
 
-You may replicate these results byu running the following python scripts `python experiments/inverted_pendulum_pg.py` and `python experiments/inverted_pendulum_ppo.py` on your machine.
+You may replicate these results by running the following python scripts `python experiments/inverted_pendulum_pg.py` and `python experiments/inverted_pendulum_ppo.py` on your machine.
