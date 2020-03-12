@@ -33,6 +33,7 @@ if __name__ == "__main__":
     plt.clf()
     figure = plt.figure(figsize=(10, 5))
     ax = figure.add_subplot(111)
+    plt.grid(True)
 
     for tag in f.tag:
 
@@ -54,26 +55,23 @@ if __name__ == "__main__":
             values, steps = d['v'], d['s']
 
             # filter the results to be the same length
-            max_length = max([len(x) for x in values])
-            values = [np.pad(z, [[0, max_length - len(z)]], mode='edge') for z in values]
-            steps = [z for z in steps if len(z) == max_length]
-
-            lower = np.min(values, axis=0)
-            mean = np.mean(values, axis=0)
-            upper = np.max(values, axis=0)
+            min_length = min([len(x) for x in values])
+            values = [z[:min_length] for z in values]
+            steps = [z for z in steps if len(z) == min_length][0]
 
             rgb = np.random.uniform(0.0, 0.8, size=3)
 
             ax.plot(
-                steps[0],
-                mean,
+                steps,
+                np.mean(values, axis=0),
                 "-",
                 label=name + " " + tag,
                 color=np.append(rgb, 1.0))
+
             ax.fill_between(
-                steps[0],
-                lower,
-                upper,
+                steps,
+                np.min(values, axis=0),
+                np.max(values, axis=0),
                 color=np.append(rgb, 0.2))
 
     ax.spines['right'].set_visible(False)
@@ -87,5 +85,4 @@ if __name__ == "__main__":
 
     ax.set_title(f.title)
     ax.legend()
-    plt.grid(True)
     plt.savefig(f.output_file)
