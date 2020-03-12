@@ -15,7 +15,7 @@ policy_gradient_variant = dict(
     policy_learning_rate=3e-4,
     epoch=10,
     batch_size=2000,
-    entropy_bonus=0.01,
+    exploration_noise=0.2,
     discount=0.99,
     obs_selector=identity,
     num_workers=10,
@@ -50,8 +50,9 @@ def policy_gradient(variant,
 
     scale = (env.action_space.high - env.action_space.low) / 2
     shift = (env.action_space.high + env.action_space.low) / 2
+    log_scale = tf.math.log(tf.tile([[variant['exploration_noise']]], [1, act_size]))
     policy = Gaussian(policy,
-                      log_scale=tf.math.log(tf.tile([[0.1]], [1, act_size])),
+                      log_scale=log_scale,
                       out_scale=scale[tf.newaxis],
                       out_shift=shift[tf.newaxis],
                       clip_below=env.action_space.low[tf.newaxis],
@@ -64,7 +65,6 @@ def policy_gradient(variant,
         policy_learning_rate=variant['policy_learning_rate'],
         epoch=variant['epoch'],
         batch_size=variant['batch_size'],
-        entropy_bonus=variant['entropy_bonus'],
         logger=logger,
         name='policy_gradient/')
 

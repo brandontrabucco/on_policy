@@ -12,13 +12,13 @@ if __name__ == "__main__":
         policy_learning_rate=0.0003,
         epoch=1,
         batch_size=24 * 256,
-        entropy_bonus=0.0,
+        exploration_noise=0.2,
         discount=0.99,
-        num_workers=24,
+        num_workers=4,
         max_horizon=256,
         iterations=1000,
         steps_per_iteration=24 * 256))
     launch(policy_gradient,
            policy_gradient_variant,
            env,
-           num_seeds=1)
+           num_seeds=6)

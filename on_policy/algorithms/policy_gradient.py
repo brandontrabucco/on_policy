@@ -13,7 +13,6 @@ class PolicyGradient(Algorithm):
                  policy_learning_rate=0.0003,
                  epoch=10,
                  batch_size=32,
-                 entropy_bonus=0.01,
                  logger=None,
                  name='policy_gradient/'):
         """Creates an optimizer using Policy Gradient for training
@@ -33,9 +32,6 @@ class PolicyGradient(Algorithm):
         batch_size: int
             the batch size to sample from the training data
             collected for the policy and critic
-        entropy_bonus: float
-            the weight given to the entropy bonus added to the PPO
-            surrogate training objective
         logger: TensorboardLogger
             a logger that stores training statistics; use logger.record
             to save values to the logger
@@ -50,7 +46,6 @@ class PolicyGradient(Algorithm):
 
         self.epoch = epoch
         self.batch_size = batch_size
-        self.entropy_bonus = entropy_bonus
 
     def policy_loss(self,
                     observations,
@@ -91,8 +86,7 @@ class PolicyGradient(Algorithm):
         # calculate the importance sampled weight
         is_ratio = tf.exp(p.log_prob(actions) - old_log_prob)
 
-        # compute a clipped surrogate training loss
-        entropy = p.entropy()
+        # compute a surrogate training loss function
         surrogate = is_ratio * advantages
 
         # log to tensorboard if logger is provided
@@ -107,13 +101,10 @@ class PolicyGradient(Algorithm):
                                old_log_prob)
             self.logger.record(self.name + 'is_ratio',
                                is_ratio)
-            self.logger.record(self.name + 'entropy',
-                               entropy)
             self.logger.record(self.name + 'surrogate',
                                surrogate)
 
-        return -tf.reduce_mean(
-            self.entropy_bonus * entropy + surrogate)
+        return -tf.reduce_mean(surrogate)
 
     def train(self,
               observations,
@@ -143,7 +134,8 @@ class PolicyGradient(Algorithm):
         advantages = advantages / tf.math.reduce_std(advantages)
 
         # calculate the log probability of the actions
-        log_prob = self.policy(observations).log_prob(actions)
+        log_prob = tf.stop_gradient(
+            self.policy(observations).log_prob(actions))
 
         # since we are taking many gradient steps
         # it is efficient to preload data

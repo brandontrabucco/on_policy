@@ -87,6 +87,7 @@ class Distribution(ABC):
                 inverse_log_det_jacobian_fn=lambda y: tf.zeros_like(y),
                 is_constant_jacobian=True,
                 is_increasing=True,
+                forward_min_event_ndims=0,
                 name='clip_below')(distribution)
 
         # if provided; upper bound the prediction distribution
@@ -99,6 +100,7 @@ class Distribution(ABC):
                 inverse_log_det_jacobian_fn=lambda y: tf.zeros_like(y),
                 is_constant_jacobian=True,
                 is_increasing=True,
+                forward_min_event_ndims=0,
                 name='clip_above')(distribution)
 
         # return a transformed distribution
