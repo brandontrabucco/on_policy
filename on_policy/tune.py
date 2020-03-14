@@ -59,19 +59,19 @@ def merge_dicts(a,
     return a
 
 
-def grid_search(search_space,
-                variant):
+def grid_search(variant,
+                **search_space):
     """Creates a list of variants for performing as hyper parameter sweep
     using the provided search space grid
 
     Arguments:
 
-    search_space: dict
-        a dictionary containing lists of search space points to
-        perform a grid search over
     variant: dict
         a dictionary of hyper parameters that control the
         rl algorithm
+    search_space: dict
+        a dictionary containing lists of search space points to
+        perform a grid search over
 
     Returns:
 

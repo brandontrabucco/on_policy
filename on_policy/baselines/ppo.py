@@ -1,4 +1,4 @@
-from on_policy.utils.keras_utils import PicklingSequential
+from on_policy.utils.keras_utils import PicklingSequential, LogScale
 from on_policy.tensorboard_logger import TensorboardLogger
 from on_policy.distributions import Gaussian
 from on_policy.algorithms.ppo import PPO
@@ -15,16 +15,16 @@ ppo_variant = dict(
     policy_learning_rate=3e-4,
     critic_learning_rate=3e-4,
     epoch=10,
-    batch_size=2000,
+    batch_size=64,
     epsilon=0.2,
-    entropy_bonus=0.01,
+    entropy_bonus=0.0,
     discount=0.99,
     lamb=0.95,
     obs_selector=identity,
-    num_workers=10,
-    max_horizon=1000,
-    iterations=1000,
-    steps_per_iteration=10000)
+    num_workers=1,
+    max_horizon=2048,
+    iterations=500,
+    steps_per_iteration=2048)
 
 
 def ppo(variant,
@@ -44,28 +44,35 @@ def ppo(variant,
     act_size = env.action_space.low.size
 
     policy = PicklingSequential([
-        tf.keras.layers.Dense(variant['hidden_size'], input_shape=(obs_size,)),
+        tf.keras.layers.Dense(
+            variant['hidden_size'], input_shape=(obs_size,)),
         tf.keras.layers.Activation('relu'),
         tf.keras.layers.Dense(variant['hidden_size']),
         tf.keras.layers.Activation('relu'),
-        tf.keras.layers.Dense(act_size * 2)],
+        tf.keras.layers.Dense(act_size),
+        LogScale((act_size,))],
         name='policy')
 
     value_function = PicklingSequential([
-        tf.keras.layers.Dense(variant['hidden_size'], input_shape=(obs_size,)),
+        tf.keras.layers.Dense(
+            variant['hidden_size'], input_shape=(obs_size,)),
         tf.keras.layers.Activation('relu'),
         tf.keras.layers.Dense(variant['hidden_size']),
         tf.keras.layers.Activation('relu'),
         tf.keras.layers.Dense(1)],
         name='value_function')
 
-    scale = (env.action_space.high - env.action_space.low) / 2
-    shift = (env.action_space.high + env.action_space.low) / 2
-    policy = Gaussian(policy,
-                      out_scale=scale[tf.newaxis],
-                      out_shift=shift[tf.newaxis],
-                      clip_below=env.action_space.low[tf.newaxis],
-                      clip_above=env.action_space.high[tf.newaxis])
+    out_scale = (env.action_space.high - env.action_space.low) / 2
+    out_shift = (env.action_space.high + env.action_space.low) / 2
+    clip_below = env.action_space.low
+    clip_above = env.action_space.high
+
+    policy = Gaussian(
+        policy,
+        out_scale=out_scale[tf.newaxis],
+        out_shift=out_shift[tf.newaxis],
+        clip_below=clip_below[tf.newaxis],
+        clip_above=clip_above[tf.newaxis])
 
     logger = TensorboardLogger(variant['logging_dir'])
 
@@ -100,4 +107,5 @@ def ppo(variant,
         algorithm,
         logger=logger,
         iterations=variant['iterations'],
-        steps_per_iteration=variant['steps_per_iteration'])
+        steps_per_iteration=variant['steps_per_iteration'],
+        logging_dir=variant['logging_dir'])

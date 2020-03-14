@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import os
 
 
 def train(sampler,
@@ -7,7 +8,8 @@ def train(sampler,
           algorithm,
           logger=None,
           iterations=1000,
-          steps_per_iteration=10000):
+          steps_per_iteration=10000,
+          logging_dir='./'):
     """Trains an on policy rl algorithm by sampling a dataset
     and training an agent iteratively
 
@@ -24,7 +26,9 @@ def train(sampler,
     iterations: int
         the number of on policy iterations to collect data for
     steps_per_iteration: int
-        the number of environment steps to collect per iteration"""
+        the number of environment steps to collect per iteration
+    logging_dir: str
+        path on the disk to save miscellaneous files"""
 
     with sampler:
 
@@ -32,6 +36,9 @@ def train(sampler,
         logger.set_step(num_steps)
 
         for i in range(iterations):
+
+            eval_video = os.path.join(logging_dir, 'eval{}.mp4'.format(i))
+            train_video = os.path.join(logging_dir, 'train{}.mp4'.format(i))
 
             sampler.set_weights(agent.get_weights())
 
@@ -43,7 +50,7 @@ def train(sampler,
              lengths) = sampler.sample(
                 steps_per_iteration,
                 deterministic=True,
-                render=False)
+                render=eval_video)
 
             logger.record('eval/returns', [
                 tf.reduce_sum(x)
@@ -57,7 +64,7 @@ def train(sampler,
              lengths) = sampler.sample(
                 steps_per_iteration,
                 deterministic=False,
-                render=False)
+                render=train_video)
 
             logger.record('train/returns', [
                 tf.reduce_sum(x)

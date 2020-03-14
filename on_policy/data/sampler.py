@@ -1,3 +1,4 @@
+from skvideo.io import FFmpegWriter
 import numpy as np
 import tree
 
@@ -81,9 +82,10 @@ class Sampler(object):
         deterministic: bool
             collects samples using the exploration policy if true
             and using the evaluation policy otherwise
-        render: bool
+        render: bool or str
             determines if the environment renders the state and
-            behavior of the agent during a roll out
+            behavior of the agent during a roll out; if a string
+            then dump a video instead of displaying
 
         Returns:
 
@@ -109,6 +111,14 @@ class Sampler(object):
 
         end_of_episode = True
         time_step = 0
+        writer = None
+
+        # if render target is a str; dump video to the disk
+        if isinstance(render, str):
+            writer = FFmpegWriter(
+                render,
+                inputdict={'-r': '60'},
+                outputdict={'-vcodec': 'libx264', '-r': '60'})
 
         # the actions and observations can be structures
         observations = []
@@ -146,7 +156,9 @@ class Sampler(object):
             time_step += 1
 
             # render the environment
-            if render:
+            if writer is not None:
+                writer.writeFrame(self.env.render(mode='rgb_array'))
+            elif render:
                 self.env.render()
 
             # store the transition sampled from the environment
@@ -172,6 +184,10 @@ class Sampler(object):
                 # https://github.com/openai/spinningup/blob/master
                 # /spinup/algos/tf1/ppo/ppo.py#L41
                 rewards[-1].append(self.agent.get_values(last_o)[0])
+
+        # close the video file and flush the write buffer
+        if writer is not None:
+            writer.close()
 
         out_o = tree.map_structure(lambda _: [], self.obs_spec)
         out_a = tree.map_structure(lambda _: [], self.act_spec)

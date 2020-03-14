@@ -41,22 +41,29 @@ def policy_gradient(variant,
     act_size = env.action_space.low.size
 
     policy = PicklingSequential([
-        tf.keras.layers.Dense(variant['hidden_size'], input_shape=(obs_size,)),
+        tf.keras.layers.Dense(
+            variant['hidden_size'], input_shape=(obs_size,)),
         tf.keras.layers.Activation('relu'),
         tf.keras.layers.Dense(variant['hidden_size']),
         tf.keras.layers.Activation('relu'),
         tf.keras.layers.Dense(act_size)],
         name='policy')
 
-    scale = (env.action_space.high - env.action_space.low) / 2
-    shift = (env.action_space.high + env.action_space.low) / 2
-    log_scale = tf.math.log(tf.tile([[variant['exploration_noise']]], [1, act_size]))
-    policy = Gaussian(policy,
-                      log_scale=log_scale,
-                      out_scale=scale[tf.newaxis],
-                      out_shift=shift[tf.newaxis],
-                      clip_below=env.action_space.low[tf.newaxis],
-                      clip_above=env.action_space.high[tf.newaxis])
+    out_scale = (env.action_space.high - env.action_space.low) / 2
+    out_shift = (env.action_space.high + env.action_space.low) / 2
+    clip_below = env.action_space.low
+    clip_above = env.action_space.high
+
+    log_scale = tf.math.log(
+        tf.tile([[variant['exploration_noise']]], [1, act_size]))
+
+    policy = Gaussian(
+        policy,
+        log_scale=log_scale,
+        out_scale=out_scale[tf.newaxis],
+        out_shift=out_shift[tf.newaxis],
+        clip_below=clip_below[tf.newaxis],
+        clip_above=clip_above[tf.newaxis])
 
     logger = TensorboardLogger(variant['logging_dir'])
 
@@ -85,4 +92,5 @@ def policy_gradient(variant,
         algorithm,
         logger=logger,
         iterations=variant['iterations'],
-        steps_per_iteration=variant['steps_per_iteration'])
+        steps_per_iteration=variant['steps_per_iteration'],
+        logging_dir=variant['logging_dir'])

@@ -7,6 +7,7 @@ REQUIRED_PACKAGES = [
     'tensorflow_probability',
     'matplotlib',
     'gym[all]',
+    'scikit-video',
     'dm-tree']
 
 

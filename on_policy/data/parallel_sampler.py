@@ -3,6 +3,7 @@ from on_policy import init_process
 import time
 import multiprocessing
 import tree
+import os
 import numpy as np
 
 
@@ -35,7 +36,7 @@ def launch_worker(set_weights_queue,
     while True:
         if not set_weights_queue.empty():
             worker.set_weights(set_weights_queue.get())
-        if not sample_queue.empty():
+        elif not sample_queue.empty():
             a, b, c = sample_queue.get()
             out_queue.put(worker.sample(a, deterministic=b, render=c))
         else:
@@ -148,9 +149,10 @@ class ParallelSampler(object):
         deterministic: bool
             collects samples using the exploration policy if true
             and using the evaluation policy otherwise
-        render: bool
+        render: bool or str
             determines if the environment renders the state and
-            behavior of the agent during a roll out
+            behavior of the agent during a roll out; if a string
+            then dump a video instead of displaying
 
         Returns:
 
@@ -178,13 +180,14 @@ class ParallelSampler(object):
         for i, q in enumerate(self.sample_queues):
             per_worker = min_num_steps // self.num_workers
             per_worker += 1 if i < min_num_steps % self.num_workers else 0
-            q.put([per_worker, deterministic, render and i == 0])
+            q.put([per_worker, deterministic, render if i == 0 else None])
 
         # create a buffer to store incoming data
         out_o = tree.map_structure(lambda _: [], self.obs_spec)
         out_a = tree.map_structure(lambda _: [], self.act_spec)
         out_ret = tree.map_structure(lambda _: [], self.act_spec)
         out_adv = tree.map_structure(lambda _: [], self.act_spec)
+
         out_rew = []
         out_lengths = []
 
@@ -208,6 +211,7 @@ class ParallelSampler(object):
                         lambda x, y: x.append(y), out_ret, ret)
                     map(self.act_spec,
                         lambda x, y: x.append(y), out_adv, adv)
+
                     out_rew.append(rew)
                     out_lengths.append(lengths)
 
@@ -220,6 +224,7 @@ class ParallelSampler(object):
                       lambda x: concat(x, axis=0), out_ret)
         out_adv = map(self.act_spec,
                       lambda x: concat(x, axis=0), out_adv)
+
         out_rew = concat(out_rew, axis=0)
         out_lengths = concat(out_lengths, axis=0)
 
