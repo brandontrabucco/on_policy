@@ -3,7 +3,7 @@ from setuptools import setup
 
 
 REQUIRED_PACKAGES = [
-    'tensorflow==2.1',
+    'tensorflow==2.11.1',
     'tensorflow_probability',
     'matplotlib',
     'gym[all]',
